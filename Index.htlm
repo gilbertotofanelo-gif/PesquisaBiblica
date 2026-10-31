@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pesquisa Bíblica</title>
+
+  <!-- Ícones (locais, no mesmo repositório) -->
+  <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+  <link rel="icon" type="image/png" href="icon-192.png">
+
+  <!-- Manifest (PWA Android) -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- PWA iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Pesquisa Bíblica">
+  <meta name="theme-color" content="#0078D7">
+
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 30px 20px;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      background: #ffffff;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+    img { width: 180px; height: 180px; object-fit: contain; }
+    h1 { margin: 15px 0 25px; color: #0078D7; font-size: 34px; }
+    .container { width: 100%; max-width: 500px; }
+
+    .instrucao {
+      margin: 20px auto 15px;
+      padding: 18px;
+      border-radius: 12px;
+      background: #f2f2f2;
+      color: #333;
+      font-size: 18px;
+      line-height: 1.5;
+      text-align: left;
+    }
+    .instrucao b { color: #0078D7; }
+
+    input {
+      width: 100%;
+      padding: 18px;
+      font-size: 28px;
+      margin-bottom: 15px;
+      border: 2px solid #0078D7;
+      border-radius: 8px;
+      display: block;
+    }
+
+    .button-wrapper {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    button {
+      padding: 20px 32px;
+      font-size: 26px;
+      background-color: #0078D7;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+    }
+    button:hover { background-color: #005fa3; }
+
+    .btn-principal {
+      width: 100%;
+      margin-top: 20px;
+    }
+
+    .dica {
+      margin-top: 18px;
+      font-size: 16px;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TELA 1: instruções de instalação (só no celular, se ainda não instalou) -->
+  <div id="telaInstalacao" class="container" style="display:none;">
+    <img src="icon-192.png" alt="Ícone Pesquisa Bíblica">
+    <h1>Pesquisa Bíblica</h1>
+
+    <div class="instrucao">
+      <p style="margin-top:0;"><b>iPhone / iPad:</b><br>
+      Toque em <b>Compartilhar</b> (⬆️) → <b>Adicionar à Tela de Início</b>.</p>
+      <p style="margin-bottom:0;"><b>Android:</b><br>
+      Toque no menu (⋮) → <b>Instalar app</b> ou <b>Adicionar à tela inicial</b>.</p>
+    </div>
+
+    <button id="btnPular" class="btn-principal">Pesquisar agora</button>
+  </div>
+
+  <!-- TELA 2: pesquisa (PWA instalada, desktop, ou depois de "Pesquisar agora") -->
+  <div id="telaPesquisa" class="container" style="display:none;">
+    <h1>Pesquisa Bíblica</h1>
+    <input type="text" id="termo" placeholder="Digite o tema (ex: Rei Davi)"
+           autocomplete="off" autocorrect="off" autocapitalize="sentences">
+    <div class="button-wrapper">
+      <button onclick="pesquisar()">Pesquisar</button>
+    </div>
+    <p class="dica">Abre a busca no JW.org em nova aba.</p>
+  </div>
+
+  <script>
+    const URL_BASE = "https://www.jw.org/pt/busca/";
+
+    function ehStandalone() {
+      return window.navigator.standalone === true
+          || window.matchMedia('(display-mode: standalone)').matches;
+    }
+
+    function ehMobile() {
+      return /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    }
+
+    function mostrar(id) {
+      document.getElementById('telaInstalacao').style.display = 'none';
+      document.getElementById('telaPesquisa').style.display = 'none';
+      document.getElementById(id).style.display = 'block';
+    }
+
+    function inicializar() {
+      if (ehStandalone()) {
+        // PWA instalada → vai direto para a pesquisa
+        mostrar('telaPesquisa');
+      } else if (ehMobile()) {
+        // Celular não instalado → instruções + botão "Pesquisar agora"
+        mostrar('telaInstalacao');
+      } else {
+        // Desktop → vai direto para a pesquisa
+        mostrar('telaPesquisa');
+      }
+
+      document.getElementById('btnPular').addEventListener('click', function () {
+        mostrar('telaPesquisa');
+        setTimeout(function () {
+          document.getElementById('termo').focus();
+        }, 100);
+      });
+
+      // Enter no teclado dispara a pesquisa (iOS mostra "Ir")
+      const input = document.getElementById('termo');
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          pesquisar();
+        }
+      });
+    }
+
+    function pesquisar() {
+      const termo = document.getElementById('termo').value.trim();
+      if (!termo) {
+        document.getElementById('termo').focus();
+        return;
+      }
+      const url = URL_BASE + "?q=" + encodeURIComponent(termo);
+      window.open(url, "_blank", "noopener");
+    }
+
+    document.addEventListener('DOMContentLoaded', inicializar);
+  </script>
+</body>
+</html>
