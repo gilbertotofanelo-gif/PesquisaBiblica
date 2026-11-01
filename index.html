@@ -5,11 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Pesquisa Bíblica</title>
 
-  <!-- Ícones (locais, no mesmo repositório) -->
+  <!-- Ícones -->
   <link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
   <link rel="icon" type="image/png" href="icon-192.png">
-
-  <!-- Manifest (PWA Android) -->
   <link rel="manifest" href="manifest.json">
 
   <!-- PWA iOS -->
@@ -36,6 +34,7 @@
     }
     img { width: 180px; height: 180px; object-fit: contain; }
     h1 { margin: 15px 0 25px; color: #0078D7; font-size: 34px; }
+    h2 { margin: 15px 0 10px; color: #0078D7; font-size: 24px; }
     .container { width: 100%; max-width: 500px; }
 
     .instrucao {
@@ -50,14 +49,22 @@
     }
     .instrucao b { color: #0078D7; }
 
-    input {
+    /* Estilo padrão para input e select */
+    input, select {
       width: 100%;
       padding: 18px;
-      font-size: 28px;
+      font-size: 22px;
       margin-bottom: 15px;
       border: 2px solid #0078D7;
       border-radius: 8px;
       display: block;
+      background-color: white;
+      color: #333;
+    }
+    
+    select {
+      cursor: pointer;
+      appearance: auto; /* mantém a setinha padrão do sistema */
     }
 
     .button-wrapper {
@@ -74,24 +81,28 @@
       border-radius: 8px;
       cursor: pointer;
       font-weight: bold;
+      width: 100%;
     }
     button:hover { background-color: #005fa3; }
 
-    .btn-principal {
-      width: 100%;
-      margin-top: 20px;
-    }
+    .btn-verde { background-color: #4CAF50; }
+    .btn-verde:hover { background-color: #388E3C; }
 
-    .dica {
-      margin-top: 18px;
-      font-size: 16px;
-      color: #666;
+    .btn-principal { width: 100%; margin-top: 20px; }
+
+    .dica { margin-top: 10px; font-size: 16px; color: #666; }
+    
+    .divisor {
+      width: 100%;
+      height: 1px;
+      background-color: #ddd;
+      margin: 30px 0;
     }
   </style>
 </head>
 <body>
 
-  <!-- TELA 1: instruções de instalação (só no celular, se ainda não instalou) -->
+  <!-- TELA 1: instruções de instalação -->
   <div id="telaInstalacao" class="container" style="display:none;">
     <img src="icon-192.png" alt="Ícone Pesquisa Bíblica">
     <h1>Pesquisa Bíblica</h1>
@@ -106,15 +117,35 @@
     <button id="btnPular" class="btn-principal">Pesquisar agora</button>
   </div>
 
-  <!-- TELA 2: pesquisa (PWA instalada, desktop, ou depois de "Pesquisar agora") -->
+  <!-- TELA 2: pesquisa e compartilhamento -->
   <div id="telaPesquisa" class="container" style="display:none;">
     <h1>Pesquisa Bíblica</h1>
-    <input type="text" id="termo" placeholder="Digite o tema (ex: Rei Davi)"
+    
+    <!-- Pesquisa -->
+    <select id="pesquisaRapida" onchange="preencherTermo()">
+      <option value="">-- Escolha um tema rápido --</option>
+      <option value="Perguntas frequentes">Perguntas frequentes</option>
+      <option value="Perguntas frequentes">Glossário da Bíblia</option>
+      <option value="Texto bíblico">Texto bíblico</option>
+      <option value="Perguntas respondidas">Perguntas respondidas</option>
+      <option value="Assuntos da Bíblia">Assuntos da Bíblia</option>
+      <option value="Bíblia de estudo">Bíblia de estudo</option>
+      <option value="Vida e ministério">Vida e ministério</option>
+      <option value="Notícias">Notícias</option>
+    </select>
+
+    <input type="text" id="termo" placeholder="Ou digite um tema (ex: Rei Davi)"
            autocomplete="off" autocorrect="off" autocapitalize="sentences">
-    <div class="button-wrapper">
-      <button onclick="pesquisar()">Pesquisar</button>
-    </div>
-    <p class="dica">Abre a busca no JW.org em nova aba.</p>
+    <button onclick="pesquisar()">Pesquisar no JW.org</button>
+    
+    <div class="divisor"></div>
+
+    <!-- Compartilhar Matéria -->
+    <h2>Salvar / Compartilhar</h2>
+    <p class="dica">Copie o link da matéria no JW.org, cole abaixo e envie para suas Notas ou E-mail.</p>
+    <input type="url" id="linkMateria" placeholder="Cole o link do JW.org aqui" autocomplete="off">
+    <button onclick="compartilharLink()" class="btn-verde">Compartilhar Matéria</button>
+
   </div>
 
   <script>
@@ -136,15 +167,10 @@
     }
 
     function inicializar() {
-      if (ehStandalone()) {
-        // PWA instalada → vai direto para a pesquisa
+      if (ehStandalone() || !ehMobile()) {
         mostrar('telaPesquisa');
-      } else if (ehMobile()) {
-        // Celular não instalado → instruções + botão "Pesquisar agora"
-        mostrar('telaInstalacao');
       } else {
-        // Desktop → vai direto para a pesquisa
-        mostrar('telaPesquisa');
+        mostrar('telaInstalacao');
       }
 
       document.getElementById('btnPular').addEventListener('click', function () {
@@ -154,7 +180,7 @@
         }, 100);
       });
 
-      // Enter no teclado dispara a pesquisa (iOS mostra "Ir")
+      // Enter no teclado dispara a pesquisa
       const input = document.getElementById('termo');
       input.addEventListener('keydown', function (e) {
         if (e.key === 'Enter') {
@@ -164,6 +190,17 @@
       });
     }
 
+    // Função que preenche o input quando o usuário escolhe na lista
+    function preencherTermo() {
+      const select = document.getElementById('pesquisaRapida');
+      const input = document.getElementById('termo');
+      
+      if (select.value !== "") {
+        input.value = select.value;
+      }
+    }
+
+    // Função de Pesquisa
     function pesquisar() {
       const termo = document.getElementById('termo').value.trim();
       if (!termo) {
@@ -172,6 +209,43 @@
       }
       const url = URL_BASE + "?q=" + encodeURIComponent(termo);
       window.open(url, "_blank", "noopener");
+    }
+
+    // Função de Compartilhar Link
+    function compartilharLink() {
+      const inputLink = document.getElementById('linkMateria');
+      const link = inputLink.value.trim();
+
+      if (!link) {
+        inputLink.focus();
+        return;
+      }
+
+      if (navigator.share) {
+        navigator.share({
+          title: 'Pesquisa Bíblica - JW.org',
+          text: 'Confira esta matéria de estudo:',
+          url: link
+        }).then(() => {
+          inputLink.value = ''; 
+        }).catch((error) => {
+          console.log('Compartilhamento cancelado ou erro', error);
+        });
+      } else {
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(link).then(() => {
+            alert("Link copiado para a área de transferência!");
+            inputLink.value = '';
+          }).catch(err => {
+            alert("Erro ao copiar. Verifique as permissões.");
+          });
+        } else {
+          inputLink.select();
+          document.execCommand('copy');
+          alert("Link copiado!");
+          inputLink.value = '';
+        }
+      }
     }
 
     document.addEventListener('DOMContentLoaded', inicializar);
